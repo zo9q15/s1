@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>خريطة الوطن</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#062b1f;--card:#0b3a2a;--gold:#e6c36a;--txt:#f4f1e6;--mute:#9bb8a8}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--txt);font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",Arial,sans-serif}
+h1{margin:0;color:var(--gold);font-size:clamp(28px,4vw,52px)}
+.screen{display:grid;grid-template-columns:1fr 240px;gap:16px;padding:16px;max-width:1400px;margin:auto}
+.head{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+.count{font-size:clamp(22px,3vw,40px);color:var(--gold)}
+.mapbox{background:var(--card);border-radius:16px;padding:8px;overflow:hidden}
+svg{width:100%;height:auto;display:block}
+.land{fill:#145a41;stroke:var(--gold);stroke-width:2;stroke-linejoin:round}
+.dot{fill:var(--gold);animation:pop .8s ease-out both}
+.lbl{fill:var(--txt);font-size:13px;paint-order:stroke;stroke:#062b1f;stroke-width:3px}
+@keyframes pop{from{r:0;opacity:0}60%{r:14}to{r:5;opacity:1}}
+.side{background:var(--card);border-radius:16px;padding:16px;text-align:center}
+#qr{background:#fff;padding:10px;border-radius:10px;display:inline-block}
+.side p{color:var(--mute);margin:10px 0}
+.form{max-width:420px;margin:auto;padding:24px 16px}
+.form label{display:block;margin:18px 0 6px;color:var(--gold)}
+input,select,button{width:100%;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid #2a6b52;background:var(--card);color:var(--txt)}
+button{background:var(--gold);color:#062b1f;font-weight:700;border:0;margin-top:24px;cursor:pointer}
+.msg{margin-top:16px;color:var(--gold);text-align:center}
+.hide{display:none}
+@media(max-width:800px){.screen{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="screen" class="screen">
+  <div class="head"><h1>🇸🇦 خريطة الوطن</h1><div class="count">المشاركون: <span id="n">0</span></div></div>
+  <div class="mapbox"><svg id="map" viewBox="0 0 800 640"><path id="land" class="land"/><g id="pins"></g></svg></div>
+  <div class="side"><h3 style="margin:0;color:var(--gold)">سجّل اسمك</h3><p>امسح الرمز واختر منطقتك</p><div id="qr"></div></div>
+</div>
+<div id="join" class="form hide">
+  <h1>🇸🇦 خريطة الوطن</h1>
+  <label>اسمك</label><input id="name" maxlength="20" placeholder="اكتب اسمك">
+  <label>منطقتك</label><select id="reg"></select>
+  <button id="go">أضف نقطتي على الخريطة</button>
+  <div class="msg" id="msg"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+var R=[["الرياض",46.7,24.6,1.2],["مكة المكرمة",40.8,21.4,.9],["المدينة المنورة",39.6,24.5,.9],["القصيم",43.9,26.3,.5],["الشرقية",49.5,26.4,1.4],["عسير",42.5,18.9,.4],["تبوك",37.0,28.3,.9],["حائل",41.7,27.5,.6],["الحدود الشمالية",42.5,30.5,.6],["جازان",42.7,17.1,.3],["نجران",44.3,17.9,.5],["الباحة",41.4,20.0,.2],["الجوف",39.9,29.9,.5]];
+var O=[[34.9,29.4],[36.0,29.2],[37.0,31.4],[39.2,32.2],[42.0,31.1],[44.7,29.2],[47.5,29.0],[48.4,28.5],[48.6,27.5],[49.6,26.9],[50.2,26.2],[50.1,25.0],[51.6,24.3],[52.6,22.9],[55.2,22.7],[55.0,20.0],[52.0,19.0],[49.0,18.0],[46.0,17.3],[44.0,17.4],[42.8,16.4],[41.5,19.5],[40.0,21.0],[39.1,21.5],[38.0,24.1],[36.6,26.0],[35.2,28.0]];
+function P(lo,la){return[(lo-34.5)*37.7,(32.4-la)*39.5]}
+document.getElementById("land").setAttribute("d","M"+O.map(function(p){return P(p[0],p[1]).join(",")}).join("L")+"Z");
+var isJoin=location.hash==="#join";
+document.getElementById(isJoin?"join":"screen").classList.remove("hide");
+if(isJoin)document.getElementById("screen").classList.add("hide");
+var sel=document.getElementById("reg");
+R.forEach(function(r,i){sel.add(new Option(r[0],i))});
+function hash(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
+function esc(s){return String(s).replace(/[&<>"]/g,"")}
+function draw(list){
+  var g=document.getElementById("pins");g.innerHTML="";
+  document.getElementById("n").textContent=list.length;
+  list.forEach(function(d){
+    var r=R[d.region];if(!r)return;var h=hash(d.id||d.name);
+    var a=(h%360)*Math.PI/180,k=((h>>3)%100)/100*r[3];
+    var p=P(r[1]+Math.cos(a)*k,r[2]+Math.sin(a)*k*.8);
+    g.insertAdjacentHTML("beforeend",'<circle class="dot" cx="'+p[0]+'" cy="'+p[1]+'" r="5"/><text class="lbl" x="'+(p[0]+8)+'" y="'+(p[1]+4)+'">'+esc(d.name)+'</text>');
+  });
+}
+function post(nm,rg){return fetch("/api/pins",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:nm,region:rg})})}
+if(isJoin){
+  document.getElementById("go").onclick=async function(){
+    var nm=document.getElementById("name").value.trim(),m=document.getElementById("msg");
+    if(!nm){m.textContent="اكتب اسمك أول";return}
+    try{var r=await post(nm,+sel.value);
+      if(!r.ok)throw 0;
+      m.textContent="تم! شوف نقطتك على الشاشة 🎉";document.getElementById("name").value=""}
+    catch(e){m.textContent="ما قدرنا نسجلك، جرّب مرة ثانية"}
+  };
+}else{
+  try{new QRCode(document.getElementById("qr"),{text:location.origin+"/#join",width:180,height:180})}catch(e){}
+  var last="";
+  function load(){fetch("/api/pins").then(function(r){return r.json()}).then(function(l){var k=JSON.stringify(l);if(k!==last){last=k;draw(l)}}).catch(function(){})}
+  load();setInterval(load,4000);
+  if(window.EventSource){var es=new EventSource("/api/stream");es.onmessage=function(e){var l=JSON.parse(e.data),k=JSON.stringify(l);if(k!==last){last=k;draw(l)}}}
+}
+</script>
+</body>
+</html>
