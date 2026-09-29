@@ -22,6 +22,15 @@ svg{width:100%;height:auto;display:block}
 .side{background:var(--card);border-radius:16px;padding:16px;text-align:center}
 #qr{background:#fff;padding:10px;border-radius:10px;display:inline-block}
 .side p{color:var(--mute);margin:10px 0}
+.lb{margin-top:16px}
+.lb h4{margin:0 0 8px;color:var(--gold);font-size:16px}
+.lr{position:relative;display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;border-radius:8px;background:#0e4632;font-size:14px;overflow:hidden;text-align:right}
+.lr .b{position:absolute;top:0;bottom:0;right:0;background:rgba(230,195,106,.2)}
+.lr span{position:relative}
+.lr .rk{width:22px;text-align:center}
+.lr .nm{flex:1}
+.lr .ct{color:var(--gold);font-weight:700}
+.lr.z{opacity:.45}
 .form{max-width:420px;margin:auto;padding:24px 16px}
 .form label{display:block;margin:18px 0 6px;color:var(--gold)}
 input,select,button{width:100%;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid #2a6b52;background:var(--card);color:var(--txt)}
@@ -35,7 +44,7 @@ button{background:var(--gold);color:#062b1f;font-weight:700;border:0;margin-top:
 <div id="screen" class="screen">
   <div class="head"><h1>🇸🇦 خريطة الوطن</h1><div class="count">المشاركون: <span id="n">0</span></div></div>
   <div class="mapbox"><svg id="map" viewBox="0 0 800 640"><defs><clipPath id="cp"><path id="land"/></clipPath></defs><g id="regs" clip-path="url(#cp)"></g><path id="outline" class="land"/><g id="rl"></g><g id="pins"></g></svg></div>
-  <div class="side"><h3 style="margin:0;color:var(--gold)">سجّل اسمك</h3><p>امسح الرمز واختر منطقتك</p><div id="qr"></div></div>
+  <div class="side"><h3 style="margin:0;color:var(--gold)">سجّل اسمك</h3><p>امسح الرمز واختر منطقتك</p><div id="qr"></div><div id="lb" class="lb"></div></div>
 </div>
 <div id="join" class="form hide">
   <h1>🇸🇦 خريطة الوطن</h1>
@@ -81,9 +90,19 @@ var sel=document.getElementById("reg");
 R.forEach(function(r,i){sel.add(new Option(r[0],i))});
 function hash(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
 function esc(s){return String(s).replace(/[&<>"]/g,"")}
+function board(list){
+  var el=document.getElementById("lb");if(!el)return;
+  var c=R.map(function(){return 0});
+  list.forEach(function(d){if(c[d.region]!==undefined)c[d.region]++});
+  var o=R.map(function(r,i){return{n:r[0],c:c[i]}}).sort(function(a,b){return b.c-a.c});
+  var mx=Math.max(1,o[0].c),md=["🥇","🥈","🥉"];
+  el.innerHTML='<h4>🏆 لوحة الصدارة</h4>'+o.map(function(x,i){
+    return '<div class="lr'+(x.c?'':' z')+'"><div class="b" style="width:'+(x.c/mx*100)+'%"></div><span class="rk">'+(x.c&&i<3?md[i]:i+1)+'</span><span class="nm">'+x.n+'</span><span class="ct">'+x.c+'</span></div>'}).join("");
+}
+board([]);
 function draw(list){
   var g=document.getElementById("pins");g.innerHTML="";
-  document.getElementById("n").textContent=list.length;
+  document.getElementById("n").textContent=list.length;board(list);
   list.forEach(function(d){
     var r=R[d.region];if(!r)return;var h=hash(d.id||d.name);
     var a=(h%360)*Math.PI/180,k=((h>>3)%100)/100*r[3];
